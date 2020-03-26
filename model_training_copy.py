@@ -247,5 +247,9 @@ model_path = os.path.join('./model', model_file_name)
 print('Uploading the model into run artifacts...')
 run.upload_file(name = './models/' + model_file_name, path_or_stream = model_path)
 
+dirpath = os.getcwd()
+print(dirpath)
+print("Following files are uploaded: ")
+print(run.get_file_names())
 
 run.complete()
