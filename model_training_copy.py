@@ -21,7 +21,7 @@ from textblob import TextBlob
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 from azureml.core import Workspace, Datastore, Dataset
-from azureml.core.run import Run 
+from azureml.core.run import Run
 from azureml.core.model import Model
 
 # subscription_id = '024d8ccf-00d6-468b-9028-67355d955e25'
@@ -31,28 +31,27 @@ from azureml.core.model import Model
 
 # try:
 #     ws = Workspace(subscription_id=subscription_id,
-#                    resource_group=resource_group, 
-#                    workspace_name = workspace_name)
+#                    resource_group=resource_group,
+#                    workspace_name=workspace_name)
 #     # write the details of the workspace to a configuration file to the notebook library
 #     ws.write_config()
 #     print("Workspace configuration succeeded. Skip the workspace creation steps below")
 # except:
 #     print("Workspace not accessible. A new workspace will be created now....")
 #     ws = Workspace.create(name=workspace_name,
-#                       subscription_id=subscription_id,
-#                       resource_group=resource_group,
-#                       location=workspace_region,
-#                       create_resource_group=True,
-#                       exist_ok=True)
+#                           subscription_id=subscription_id,
+#                           resource_group=resource_group,
+#                           location=workspace_region,
+#                           create_resource_group=True,
+#                           exist_ok=True)
 #     ws.get_details()
 #     ws.write_config()
 
 
 
-
 run = Run.get_context()
-exp = run.experiment
-ws = run.experiment.workspace
+# exp = run.experiment
+# ws = run.experiment.workspace
 
 print('Loading training data....')
 
@@ -245,7 +244,7 @@ model_file_name = 'naiveBayes.pkl'
 model_path = os.path.join('./model', model_file_name)
 
 print('Uploading the model into run artifacts...')
-run.upload_file(name = './models/' + model_file_name, path_or_stream = model_path)
+run.upload_file(name='./models/' + model_file_name, path_or_stream=model_path)
 
 dirpath = os.getcwd()
 print(dirpath)
