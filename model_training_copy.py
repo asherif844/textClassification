@@ -245,12 +245,7 @@ model_file_name = 'naiveBayes.pkl'
 model_path = os.path.join('./model', model_file_name)
 
 print('Uploading the model into run artifacts...')
-run.upload_file(name = './models' + model_file_name, path_or_stream = model_path)
+run.upload_file(name = './models/' + model_file_name, path_or_stream = model_path)
 
-print("Uploaded the model {} to experiment {}".format(model_file_name, run.experiment.name))
-dirpath = os.getcwd()
-print(dirpath)
-print("The following files are uploaded ")
-print(run.get_file_names())
 
 run.complete()
