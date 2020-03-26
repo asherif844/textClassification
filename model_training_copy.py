@@ -50,8 +50,8 @@ from azureml.core.model import Model
 
 
 run = Run.get_context()
-# exp = run.experiment
-# ws = run.experiment.workspace
+exp = run.experiment
+ws = run.experiment.workspace
 
 print('Loading training data....')
 
