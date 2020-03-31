@@ -20,7 +20,7 @@ azureml-model-management-sdk==1.0.1b6.post1
 backcall==0.1.0
 backports.tempfile==1.0
 backports.weakref==1.0.post1
-bleach==3.1.1
+bleach==3.1.4
 certifi==2019.11.28
 cffi==1.14.0
 chardet==3.0.4
