@@ -21,6 +21,9 @@ We offer a comprehensive study of this corpus in the following paper. This work 
 
 Almeida, T.A., GÃ³mez Hidalgo, J.M., Yamakami, A. Contributions to the Study of SMS Spam Filtering: New Collection and Results. Proceedings of the 2011 ACM Symposium on Document Engineering (DOCENG'11), Mountain View, CA, USA, 2011.
 
+Some of the code for the flask app POST and GET methodologies were inspired by the tutorials from the following link:
+https://scotch.io/bar-talk/processing-incoming-request-data-in-flask
+
 
 ## License
 
