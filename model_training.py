@@ -1,8 +1,11 @@
+# import python core libraries
 import json
 import os
 import pickle
 import re
 from collections import defaultdict
+
+# import external python libraries
 
 import nltk
 import numpy as np
@@ -12,7 +15,7 @@ from nltk.corpus import stopwords
 from nltk.corpus import wordnet as wn
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
-from sklearn import model_selection, naive_bayes, svm
+from sklearn import model_selection, naive_bayes, svm, utils
 from sklearn.externals import joblib
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import accuracy_score, precision_score, recall_score
@@ -20,27 +23,19 @@ from sklearn.preprocessing import LabelEncoder
 from textblob import TextBlob
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
-df = pd.read_csv('data/training_samples.csv')
-lookup = pd.read_csv('data/lookup_table.csv')
 
-df = df[['0', '1']]
-df.columns = ['text', 'label']
+print('Loading the Training Data....')
+df = pd.read_csv('data/spam_encoded.csv', encoding="utf-8")
 
-df2 = pd.merge(df, lookup, left_on='label', right_on='index', how='outer')
+df.head()
 
-df2['Area'].value_counts()
-df2['Area'] = df2['Area'].str.upper()
-df2 = df2[['text', 'Area']]
+df = df[df.columns[:2]]
 
-df2 = df2[~df2['Area'].isin([' ', 'DELETE', 'MEDICATION', 'ALLERGIES', ''])]
+df.columns = ['label', 'text']
 
-df2['text'] = df2['text'].apply(lambda x: re.sub('[^a-zA-Z0-9 \n\.]', '', x))
+df['label'].value_counts()
 
-
-df2 = df2[~df2['text'].str.startswith('PLAN')]
-df2 = df2[~df2['text'].apply(lambda x: len(x) <= 5)]
-df2 = df2.drop_duplicates()
-df2 = df2.dropna(axis=0)
+print('Begin the data munging phase...')
 
 
 def text_analysis(raw_data):
@@ -53,43 +48,47 @@ def text_analysis(raw_data):
         return e
     return str(subobj)
 
-# sample_scenarios = ['I like this', 'I love this', 'I hate this']
-# for i in sample_scenarios:
-#   print(text_analysis(i))
-
 
 analyser = SentimentIntensityAnalyzer()
-df2['negative'] = df2['text'].apply(
+
+df['negative'] = df['text'].apply(
     lambda x: analyser.polarity_scores(x).get('neg'))
-df2['neutral'] = df2['text'].apply(
+df['neutral'] = df['text'].apply(
     lambda x: analyser.polarity_scores(x).get('neu'))
-df2['positive'] = df2['text'].apply(
+df['positive'] = df['text'].apply(
     lambda x: analyser.polarity_scores(x).get('pos'))
-df2['compound'] = df2['text'].apply(
+df['compound'] = df['text'].apply(
     lambda x: analyser.polarity_scores(x).get('compound'))
-
-df2['subjective'] = df2['text'].apply(
+df['subjective'] = df['text'].apply(
     lambda x: round(TextBlob(x).sentiment.subjectivity, 4))
-df2['objective'] = df2['text'].apply(
-    lambda x: round(1 - TextBlob(x).sentiment.subjectivity, 4))
+df['objective'] = df['text'].apply(lambda x: round(
+    1 - TextBlob(x).sentiment.subjectivity, 4))
 
-df2['label'] = df2['Area']
-# df2['label'][(df2['Area'] == 'SUBJECTIVE') & (
-#     df2['objective'] >= 0.50)] = 'OBJECTIVE'
+print('we have a data imbalance....')
+print('we will address the imbalance in the training split step....')
 
+df_spam = df[df['label'] == 1]
+df_ham = df[df['label'] == 0]
 
+df_ham_downsamples = utils.resample(
+    df_ham, replace=False, n_samples=len(df_spam), random_state=12345)
+
+df2 = pd.concat([df_spam, df_ham_downsamples])
+
+df2 = df2.sample(frac=1)
+
+print('Begin the training split step....')
 train_X, test_X, train_Y, test_Y = model_selection.train_test_split(
     df2['text'], df2['label'], test_size=0.2)
 
 print(train_X.shape, train_Y.shape, test_X.shape, test_Y.shape)
 
 Encoder = LabelEncoder()
-labels = train_Y
 train_Y = Encoder.fit_transform(train_Y)
 test_Y = Encoder.fit_transform(test_Y)
 
-lookup = pd.DataFrame({'labelName': labels.values, 'LabelCode': train_Y})
-lookup = lookup.drop_duplicates()
+lookup = pd.DataFrame({'labelName': ['not spam', 'spam'], 'LabelCode': [0, 1]})
+
 
 Tfidf_vect = TfidfVectorizer(max_features=5000)
 Tfidf_vect.fit(df['text'])
@@ -97,6 +96,7 @@ Tfidf_vect.fit(df['text'])
 Train_X_Tfidf = Tfidf_vect.transform(train_X)
 Test_X_Tfidf = Tfidf_vect.transform(test_X)
 
+print('Begin the training proces....')
 # fit the training dataset on the NB classifier
 Naive = naive_bayes.MultinomialNB()
 Naive.fit(Train_X_Tfidf, train_Y)
@@ -107,6 +107,16 @@ predictions_NB = Naive.predict(Test_X_Tfidf)
 # Use accuracy_score function to get the accuracy
 print("Naive Bayes Accuracy Score -> ",
       accuracy_score(predictions_NB, test_Y)*100)
+
+
+print('Split text into potential sentences....')
+
+"""
+This code for the function split_into_sentences() was obtained from user (D Greenberg) off of stackoverflow.com
+The link to this code can be obtained from the following link:
+https://stackoverflow.com/a/31505798/6594800
+
+"""
 
 
 alphabets = "([A-Za-z])"
@@ -175,8 +185,8 @@ def model_run(text):
                                  for review in df_temp['text'].values]
         Tfidf = Tfidf_vect.transform(df_temp['text_final'])
         predictions_temp = Naive.predict_proba(Tfidf)[0]
-        prediction_output = {f'Sentence {i[0]+1}': label, 'Assessment': predictions_temp[0],
-                             'Objective': predictions_temp[1], 'Plan': predictions_temp[2], 'Subjective': predictions_temp[3]}
+        prediction_output = {f'Sentence {i[0]+1}': label, 'Not Spam': predictions_temp[0],
+                             'Spam': predictions_temp[1]}
         text_predictions.append(prediction_output)
     return str(text_predictions)
 
@@ -184,10 +194,12 @@ def model_run(text):
 nb_model_location = os.path.join(os.getcwd(), 'models')
 os.makedirs(nb_model_location, exist_ok=True)
 
+print('model artifact exporting....')
 joblib.dump(Naive, filename=os.path.join(nb_model_location, 'naiveBayes.pkl'))
-joblib.dump(Tfidf_vect, filename=os.path.join(nb_model_location, 'vect.pkl'))
+joblib.dump(Tfidf_vect, filename=os.path.join(
+    nb_model_location, 'vectorization.pkl'))
 joblib.dump(lookup, filename=os.path.join(nb_model_location, 'lookup.pkl'))
 
 
 sample = 'This is awesome. This is horrible'
-model_run(sample)
+print(model_run(sample))

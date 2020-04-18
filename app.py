@@ -6,7 +6,8 @@ import re
 import nltk
 import numpy as np
 import pandas as pd
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template, flash
+from wtforms import Form, TextField, TextAreaField, validators, StringField, SubmitField
 from nltk import pos_tag
 from nltk.corpus import stopwords
 from nltk.corpus import wordnet as wn
@@ -30,7 +31,7 @@ websites = "[.](com|net|org|io|gov)"
 # retrieve the path to the model file using the model name
 models_folder = os.path.join(os.getcwd(), 'models')
 model = joblib.load(os.path.join(models_folder, 'naiveBayes.pkl'))
-Tfidf_vect = joblib.load(os.path.join(models_folder, 'vect.pkl'))
+Tfidf_vect = joblib.load(os.path.join(models_folder, 'vectorization.pkl'))
 lookup = joblib.load(os.path.join(models_folder, 'lookup.pkl'))
 
 
@@ -69,41 +70,61 @@ def split_into_sentences(text):
 
 
 def add_an_ending(text):
-      if text[-1] not in ['!', ',', '.', '\n', '?']:
-          text += '.'
-      return text
-
+    if text[-1] not in ['!', ',', '.', '\n', '?']:
+        text += '.'
+    return text
 
 
 app = Flask(__name__)
 
 
-@app.route('/')
+@app.route('/', methods=['POST', 'GET'])
 def home():
-    return 'The App Now is Live'
+    if request.method == 'POST':
+        text_predictions= []
+        text = add_an_ending(request.form.get('eMail'))
+        for i in enumerate(split_into_sentences(text)):
+            label = str(i[1])
+            df_temp = pd.DataFrame([label], columns=['text'])
+            df_temp['text'] = [entry.lower() for entry in df_temp['text']]
+            df_temp['text'] = [word_tokenize(entry) for entry in df_temp['text']]
+            df_temp['text_final'] = [" ".join(review)
+                                    for review in df_temp['text'].values]
+            Tfidf = Tfidf_vect.transform(df_temp['text_final'])
+            predictions_temp = model.predict_proba(Tfidf)[0]
+            prediction_output = {
+                f'Sentence {i[0]+1}': label, 'Not Spam': predictions_temp[0], 'Spam': predictions_temp[1]}
+            text_predictions.append(prediction_output)
+        return """
+                  <p>The ham/spam breakout for this eMail is: {}</p>
+                  
+                  """.format(text_predictions)
+
+    return '''<form method="POST">
+                  eMail: <input type="text" name="eMail"><br>
+                  <input type="submit" value="Submit"><br>
+              </form>'''
+
 
 @app.route('/soap', methods=['POST'])
-
 def run():
     text_predictions = []
     text2 = request.json
     text = add_an_ending(text2.get('text'))
     for i in enumerate(split_into_sentences(text)):
-      label = str(i[1])
-      df_temp = pd.DataFrame([label], columns= ['text'])
-      df_temp['text'] = [entry.lower() for entry in df_temp['text']]
-      df_temp['text'] = [word_tokenize(entry) for entry in df_temp['text']]
-      df_temp['text_final'] = [" ".join(review) for review in df_temp['text'].values]
-      Tfidf = Tfidf_vect.transform(df_temp['text_final'])
-      predictions_temp = model.predict_proba(Tfidf)[0]
-      prediction_output= {f'{i[0]+1}_Sentence':label, 'Assessment': predictions_temp[0], 'Objective': predictions_temp[1], 'Plan':predictions_temp[2], 'Subjective':predictions_temp[3]}
-      text_predictions.append(prediction_output)
+        label = str(i[1])
+        df_temp = pd.DataFrame([label], columns=['text'])
+        df_temp['text'] = [entry.lower() for entry in df_temp['text']]
+        df_temp['text'] = [word_tokenize(entry) for entry in df_temp['text']]
+        df_temp['text_final'] = [" ".join(review)
+                                 for review in df_temp['text'].values]
+        Tfidf = Tfidf_vect.transform(df_temp['text_final'])
+        predictions_temp = model.predict_proba(Tfidf)[0]
+        prediction_output = {
+            f'Sentence {i[0]+1}': label, 'Not Spam': predictions_temp[0], 'Spam': predictions_temp[1]}
+        text_predictions.append(prediction_output)
     return jsonify(text_predictions)
 
-# def run():
-#     dataset = request.json 
-#     # return add_an_ending(dataset)
-#     return jsonify(add_an_ending(dataset.get('text')))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)

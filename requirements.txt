@@ -116,4 +116,5 @@ webencodings==0.5.1
 websocket-client==0.57.0
 Werkzeug==0.16.1
 widgetsnbextension==3.5.1
+WTForms==2.2.1
 zipp==3.1.0
