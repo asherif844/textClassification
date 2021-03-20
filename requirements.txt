@@ -49,7 +49,7 @@ isodate==0.6.0
 itsdangerous==1.1.0
 jedi==0.16.0
 jeepney==0.4.3
-Jinja2==2.11.1
+Jinja2==2.11.3
 jmespath==0.9.5
 joblib==0.14.1
 json-logging-py==0.2
