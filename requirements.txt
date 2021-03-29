@@ -86,7 +86,7 @@ ptyprocess==0.6.0
 pyasn1==0.4.8
 pycodestyle==2.5.0
 pycparser==2.20
-Pygments==2.6.1
+Pygments==2.7.4
 PyJWT==1.7.1
 pyOpenSSL==19.1.0
 pyrsistent==0.15.7
