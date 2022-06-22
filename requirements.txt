@@ -71,7 +71,7 @@ nbformat==5.0.4
 ndg-httpsclient==0.5.1
 nltk==3.4.5
 notebook==6.0.3
-numpy==1.18.1
+numpy==1.22.0
 oauthlib==3.1.0
 pandas==1.0.1
 pandocfilters==1.4.2
